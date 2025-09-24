@@ -3,9 +3,10 @@ import axios from "axios";
 
 export default function UploadForm() {
   const [file, setFile] = useState(null);
-  const [convertedUrl, setConvertedUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [downloadLink, setDownloadLink] = useState(null);
+  const [fileSize, setFileSize] = useState(null);
 
   const handleUpload = async () => {
     if (!file) {
@@ -14,15 +15,16 @@ export default function UploadForm() {
     }
 
     setLoading(true);
-    setConvertedUrl("");
     setProgress(0);
+    setDownloadLink(null);
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("begin", 1); // or 0 depending on conversion
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/convert`,
+        `${import.meta.env.VITE_API_URL}/convert`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -35,7 +37,9 @@ export default function UploadForm() {
         }
       );
 
-      setConvertedUrl(`${import.meta.env.VITE_API_URL}${res.data.url}`);
+      // Store response link + size
+      setDownloadLink(res.data.url);
+      setFileSize(res.data.size);
     } catch (err) {
       console.error(err);
       alert("Conversion failed. Please try again.");
@@ -58,12 +62,12 @@ export default function UploadForm() {
       }}
     >
       <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
-        Upload PDF/DOCX → Convert to Kruti Dev 055
+        Upload DOCX → Convert Kruti Dev / Unicode
       </h2>
 
       <input
         type="file"
-        accept=".pdf,.docx"
+        accept=".docx"
         onChange={(e) => setFile(e.target.files[0])}
         style={{
           display: "block",
@@ -116,17 +120,15 @@ export default function UploadForm() {
         </div>
       )}
 
-      {convertedUrl && !loading && (
-        <div
-          style={{
-            marginTop: "30px",
-            textAlign: "center",
-          }}
-        >
+      {/* Show download button when ready */}
+      {downloadLink && (
+        <div style={{ marginTop: "20px", textAlign: "center" }}>
+          <p>✅ File converted successfully ({(fileSize / 1024).toFixed(1)} KB)</p>
           <a
-            href={convertedUrl}
-            download
+            href={`${import.meta.env.VITE_API_URL}${downloadLink}`}
+            download="converted.docx"
             style={{
+              display: "inline-block",
               padding: "12px 20px",
               borderRadius: "8px",
               backgroundColor: "#2196f3",
@@ -135,10 +137,9 @@ export default function UploadForm() {
               textDecoration: "none",
               transition: "background-color 0.3s",
             }}
-            onMouseOver={(e) => (e.target.style.backgroundColor = "#1976d2")}
-            onMouseOut={(e) => (e.target.style.backgroundColor = "#2196f3")}
+            target="_blank"
           >
-            Download Converted File
+            ⬇️ Download File
           </a>
         </div>
       )}
